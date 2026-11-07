@@ -29,6 +29,35 @@ if [ ! -d moonlight-core/src/main/java ]; then
   rm -rf "$tmp"
 fi
 
+# RayDesk's Moonlight core had a factory for stream settings without Moonlight's settings screen
+python3 - <<'PY2'
+import pathlib
+path = pathlib.Path("moonlight-core/src/main/java/com/limelight/preferences/PreferenceConfiguration.java")
+source = path.read_text(encoding="utf-8")
+if "createForStreaming" not in source:
+    anchor = "    public static PreferenceConfiguration readPreferences(Context context) {"
+    assert anchor in source, "readPreferences not found"
+    factory = """    // RayDesk: settings for a stream, with Moonlight's defaults for everything else
+    public static PreferenceConfiguration createForStreaming(int width, int height, int fps, int bitrate) {
+        PreferenceConfiguration config = new PreferenceConfiguration();
+        config.width = width;
+        config.height = height;
+        config.fps = fps;
+        config.bitrate = bitrate;
+        config.videoFormat = FormatOption.AUTO;
+        config.audioConfiguration = MoonBridge.AUDIO_CONFIGURATION_STEREO;
+        config.framePacing = FRAME_PACING_BALANCED;
+        config.language = DEFAULT_LANGUAGE;
+        config.enableSops = true;
+        config.playHostAudio = false;
+        return config;
+    }
+
+"""
+    path.write_text(source.replace(anchor, factory + anchor), encoding="utf-8")
+    print("Added PreferenceConfiguration.createForStreaming")
+PY2
+
 # Moonlight's own manifest (its launcher, activities, app settings) would merge into RayDesk's;
 # RayDesk declares the Moonlight services it uses itself.
 cat > moonlight-core/src/main/AndroidManifest.xml <<'XML'

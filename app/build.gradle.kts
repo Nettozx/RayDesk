@@ -12,7 +12,9 @@ plugins {
 }
 
 android {
-    namespace = "com.raydesk.app"
+    // The code's package (its R and view binding classes are com.raydesk.test); the installed
+    // app ID stays com.raydesk.app, so it installs next to upstream's com.raydesk.test release
+    namespace = "com.raydesk.test"
     compileSdk = 34
 
     defaultConfig {
