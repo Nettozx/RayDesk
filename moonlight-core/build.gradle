@@ -1,0 +1,64 @@
+// Moonlight's streaming core (com.limelight) as a library for RayDesk. The sources are fetched by
+// scripts/fetch-dependencies.sh from moonlight-android; this replaces its app build
+// (flavors, application ID, signing) with a plain library, nonRoot flavor, arm64 only.
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    namespace 'com.limelight'
+    compileSdk 34
+    ndkVersion "23.2.8568313" // as moonlight-android
+
+    defaultConfig {
+        minSdk 21
+        // Fields and strings Moonlight's app build generated
+        buildConfigField "boolean", "ROOT_BUILD", "false"
+        buildConfigField "String", "APPLICATION_ID", "\"com.limelight\""
+        buildConfigField "String", "VERSION_NAME", "\"12.1\""
+        buildConfigField "int", "VERSION_CODE", "314"
+        resValue "string", "app_label", "Moonlight"
+        resValue "string", "app_label_root", "Moonlight (Root)"
+
+        externalNativeBuild {
+            ndkBuild {
+                arguments "PRODUCT_FLAVOR=nonRoot"
+            }
+        }
+        ndk {
+            abiFilters 'arm64-v8a' // RayNeo X3 Pro
+        }
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    compileOptions {
+        encoding "UTF-8"
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path "src/main/jni/Android.mk"
+        }
+    }
+}
+
+dependencies {
+    // As moonlight-android v12.1
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+    implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
+    implementation 'org.jcodec:jcodec:0.2.3'
+    implementation 'com.squareup.okhttp3:okhttp:3.12.13'
+    implementation 'com.squareup.okio:okio:1.17.5'
+    implementation 'org.jmdns:jmdns:3.5.7'
+    implementation 'com.github.cgutman:ShieldControllerExtensions:1.0.1'
+}

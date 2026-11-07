@@ -42,12 +42,10 @@ android {
 }
 
 dependencies {
-    // Mercury SDK for RayNeo X3 Pro (proprietary - contact RayNeo for SDK access)
-    // Place the AAR in sdk/ and uncomment:
-    // implementation(files("../sdk/mercury-release.aar"))
-
-    // Moonlight streaming core (see README for build instructions)
-    // implementation(project(":moonlight-core"))
+    // Mercury SDK for RayNeo X3 Pro and Moonlight's streaming core: both fetched by
+    // scripts/fetch-dependencies.sh (run it once before building)
+    implementation(files("../sdk/mercury-release.aar"))
+    implementation(project(":moonlight-core"))
 
     // AndroidX
     implementation("androidx.core:core-ktx:1.12.0")

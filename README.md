@@ -80,15 +80,15 @@ Most users should download the pre-built APK from [Releases](https://github.com/
 | **Moonlight Core** | Build from [moonlight-android](https://github.com/moonlight-stream/moonlight-android) + [moonlight-common-c](https://github.com/moonlight-stream/moonlight-common-c) | Add as a `:moonlight-core` library module |
 
 ```bash
-# Requirements: JDK 17, Android SDK 34
+# Requirements: JDK 17, Android SDK 34, NDK 23.2.8568313
 
-# 1. Place Mercury SDK AAR in sdk/
-# 2. Add moonlight-core as a library module
-# 3. Uncomment the two dependency lines in app/build.gradle.kts
-# 4. Add include(":moonlight-core") to settings.gradle.kts
-# 5. Build:
+# 1. Fetch the Mercury SDK and Moonlight's core (moonlight-android v12.1):
+bash scripts/fetch-dependencies.sh
+# 2. Build:
 ./gradlew assembleDebug
 ```
+
+CI (`.github/workflows/build.yml`) does the same on every push to `main` and uploads the APK.
 
 ## License
 

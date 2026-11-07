@@ -2019,6 +2019,27 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
         // Stop mirroring
         binding.mirrorView.stopMirroring()
 
+        // End the session on the host when leaving for good (not on a configuration change). Just
+        // disconnecting leaves Sunshine/Apollo treating it as paused, with its display setup still
+        // applied: e.g. a 640x480 virtual display as the PC's only screen, the monitors off, until
+        // the PC is rebooted.
+        if (isFinishing) {
+            val bridge = moonlightBridge
+            val server = serverUuid?.let { serverRepository.getServer(it) }
+            if (bridge != null && server != null) {
+                // Off the main thread, and outliving this activity
+                @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+                kotlinx.coroutines.GlobalScope.launch {
+                    try {
+                        val quit = bridge.quitExistingSession(server)
+                        Log.i(TAG, "[EXIT] Ended host session: $quit")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "[EXIT] Couldn't end host session", e)
+                    }
+                }
+            }
+        }
+
         // Stop Moonlight streaming
         moonlightBridge?.release()
         moonlightBridge = null
