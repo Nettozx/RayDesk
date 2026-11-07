@@ -220,6 +220,7 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
     private var currentPitch = 0f
     private var headTimestampNs = 0L
     private var needsRecenter = true  // Recenter on first sensor reading
+    private var pitchZeroDegrees = Float.NaN  // Raw pitch at the first sensor reading
 
     // Debug/status
     private var showStatus = false
@@ -1754,13 +1755,23 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
                 2.0 * (qw * qz + qx * qy),
                 1.0 - 2.0 * (qy * qy + qz * qz)
             )
-            // Pitch: rotation around X-axis (look up = negative, look down = positive)
-            val pitchRadians = kotlin.math.asin(
-                (2.0 * (qw * qy - qz * qx)).coerceIn(-1.0, 1.0)
+            // Pitch (look up = positive): the glasses sit upright on the head, so nodding
+            // turns the device about its own X axis -- the last (roll) term of the
+            // Z-Y-X decomposition. The middle term this used before is head tilt toward
+            // the shoulder, so looking up or down barely moved the view.
+            val pitchRadians = kotlin.math.atan2(
+                2.0 * (qw * qx + qy * qz),
+                1.0 - 2.0 * (qx * qx + qy * qy)
             )
 
             val yawDegrees = Math.toDegrees(yawRadians).toFloat()
-            val pitchDegrees = Math.toDegrees(pitchRadians).toFloat()
+            // Upright glasses read about +/-90 here; measure from the first reading so the
+            // screen starts level (recentering zeroes it again later).
+            val rawPitchDegrees = Math.toDegrees(pitchRadians).toFloat()
+            if (pitchZeroDegrees.isNaN()) pitchZeroDegrees = rawPitchDegrees
+            var pitchDegrees = rawPitchDegrees - pitchZeroDegrees
+            if (pitchDegrees > 180f) pitchDegrees -= 360f
+            if (pitchDegrees < -180f) pitchDegrees += 360f
 
             // Update current values for renderer (floating monitor mode)
             currentYaw = yawDegrees

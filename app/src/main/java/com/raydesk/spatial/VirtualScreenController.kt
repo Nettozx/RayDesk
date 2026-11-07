@@ -3,6 +3,7 @@ package com.raydesk.spatial
 import android.opengl.Matrix
 import android.util.Log
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.sign
 
 /**
@@ -42,6 +43,7 @@ class VirtualScreenController(
         // Stick-to-View thresholds (degrees beyond FOV before screen follows)
         // RayNeo X3 Pro has ~30° diagonal FOV, so ~25° horizontal
         private const val STICK_TO_VIEW_YAW_THRESHOLD = 20f   // Degrees before lazy follow for yaw
+        private const val EDGE_REVEAL_MARGIN_DEGREES = 3f   // Look a little past a zoomed screen's edge before it follows
         private const val STICK_TO_VIEW_PITCH_THRESHOLD = 12f // Pitch threshold is lower (vertical neck movement is harder)
 
         // Screen distance limits (legacy - kept for API compatibility)
@@ -107,6 +109,8 @@ class VirtualScreenController(
     // Projection matrix (shared, configured once)
     private val projectionMatrix = FloatArray(16)
     private var projectionConfigured = false
+    private var projectionFovYDegrees = 30f
+    private var projectionAspect = 4f / 3f
 
     init {
         // Initialize identity matrices
@@ -142,16 +146,21 @@ class VirtualScreenController(
         val yawDelta = rawHeadYaw - smoothedScreenYaw
         val pitchDelta = rawHeadPitch - smoothedScreenPitch
 
+        // Stick-to-view only starts once the screen's far edge has come into view, so a
+        // zoomed-in screen (bigger than the field of view) can still be looked around.
+        val yawThreshold = max(STICK_TO_VIEW_YAW_THRESHOLD, edgeRevealAngle(screenWidth * currentScale, halfFovXDegrees()))
+        val pitchThreshold = max(STICK_TO_VIEW_PITCH_THRESHOLD, edgeRevealAngle(screenHeight * currentScale, projectionFovYDegrees / 2f))
+
         // Horizontal (yaw) stick-to-view
-        if (abs(yawDelta) > STICK_TO_VIEW_YAW_THRESHOLD) {
+        if (abs(yawDelta) > yawThreshold) {
             // Head turned too far - drag screen along
-            val overshoot = yawDelta - STICK_TO_VIEW_YAW_THRESHOLD * sign(yawDelta)
+            val overshoot = yawDelta - yawThreshold * sign(yawDelta)
             smoothedScreenYaw += overshoot * DAMPENING_COEFF * 2f  // Faster catch-up when beyond threshold
         }
 
         // Vertical (pitch) stick-to-view
-        if (abs(pitchDelta) > STICK_TO_VIEW_PITCH_THRESHOLD) {
-            val overshoot = pitchDelta - STICK_TO_VIEW_PITCH_THRESHOLD * sign(pitchDelta)
+        if (abs(pitchDelta) > pitchThreshold) {
+            val overshoot = pitchDelta - pitchThreshold * sign(pitchDelta)
             smoothedScreenPitch += overshoot * DAMPENING_COEFF * 2f
         }
 
@@ -440,7 +449,20 @@ class VirtualScreenController(
      * @param near Near clipping plane
      * @param far Far clipping plane
      */
+    /** Head angle (degrees) at which a screen edge [size] wide/tall reaches the view's edge, plus a margin. */
+    private fun edgeRevealAngle(size: Float, halfFovDegrees: Float): Float {
+        val edge = Math.toDegrees(kotlin.math.atan((size / 2f / FIXED_DISTANCE).toDouble())).toFloat()
+        return edge - halfFovDegrees + EDGE_REVEAL_MARGIN_DEGREES
+    }
+
+    private fun halfFovXDegrees(): Float {
+        val halfY = Math.toRadians(projectionFovYDegrees / 2.0)
+        return Math.toDegrees(kotlin.math.atan(kotlin.math.tan(halfY) * projectionAspect)).toFloat()
+    }
+
     fun configureProjection(fovDegrees: Float, aspect: Float, near: Float = 0.1f, far: Float = 100f) {
+        projectionFovYDegrees = fovDegrees
+        projectionAspect = aspect
         Matrix.perspectiveM(projectionMatrix, 0, fovDegrees, aspect, near, far)
         projectionConfigured = true
     }
