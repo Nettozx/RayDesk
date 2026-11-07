@@ -22,12 +22,40 @@ jobs:
       - name: Fetch Mercury SDK and Moonlight core
         run: bash scripts/fetch-dependencies.sh
 
+      # Signed release build when the repository has the signing secrets (same keystore as the
+      # other RayNeo forks, so updates install over each other); a debug build otherwise
+      - name: Configure signing
+        id: signing
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::warning::No signing secrets; building a debug APK"
+            echo "variant=debug" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/key.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/key.jks"
+            echo "storePassword=$KEY_STORE_PASSWORD"
+            echo "keyAlias=$ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+          echo "variant=release" >> "$GITHUB_OUTPUT"
+
       - name: Build
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace
+          if [ "${{ steps.signing.outputs.variant }}" = release ]; then
+            ./gradlew :app:assembleRelease --stacktrace
+          else
+            ./gradlew :app:assembleDebug --stacktrace
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RayDesk-debug-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/*.apk
+          name: RayDesk-${{ steps.signing.outputs.variant }}-${{ github.run_number }}
+          path: app/build/outputs/apk/${{ steps.signing.outputs.variant }}/*.apk
