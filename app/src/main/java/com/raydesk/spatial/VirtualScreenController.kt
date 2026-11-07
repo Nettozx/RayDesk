@@ -6,6 +6,13 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.sign
 
+/** Wrap an angle in degrees to [-180, 180) so turning past "behind" doesn't spin the screen around. */
+internal fun wrapDegrees(deg: Float): Float {
+    var d = (deg + 180f) % 360f
+    if (d < 0f) d += 360f
+    return d - 180f
+}
+
 /**
  * Controls the position and orientation of the virtual screen in 3D space.
  *
@@ -56,7 +63,7 @@ class VirtualScreenController(
 
         // Scale limits for zoom (multiplicative, not additive)
         const val MIN_SCALE = 0.5f         // 50% = zoomed out max
-        const val MAX_SCALE = 3.0f         // 300% = zoomed in max
+        const val MAX_SCALE = 5.0f         // 500% = zoomed in max
         const val DEFAULT_SCALE = 1.0f
 
         // Multiplicative zoom factors (perceptually linear)
@@ -132,7 +139,7 @@ class VirtualScreenController(
      */
     fun updateHeadPose(yaw: Float, pitch: Float) {
         // Adjust for baseline (allows recentering)
-        rawHeadYaw = yaw - baseYaw
+        rawHeadYaw = wrapDegrees(yaw - baseYaw)
         rawHeadPitch = pitch - basePitch
 
         // Debug: log every second to trace head pose updates
@@ -143,7 +150,7 @@ class VirtualScreenController(
 
         // Apply "Stick-to-View" lazy follow
         // If head turns beyond threshold, screen gently follows to prevent user losing it
-        val yawDelta = rawHeadYaw - smoothedScreenYaw
+        val yawDelta = wrapDegrees(rawHeadYaw - smoothedScreenYaw)
         val pitchDelta = rawHeadPitch - smoothedScreenPitch
 
         // Stick-to-view only starts once the screen's far edge has come into view, so a
@@ -166,7 +173,7 @@ class VirtualScreenController(
 
         // Apply micro-jitter dampening (screen lags slightly behind head)
         // This hides the waveguide optics micro-wobble on nose without adding perceived latency
-        smoothedScreenYaw += (rawHeadYaw - smoothedScreenYaw) * DAMPENING_COEFF
+        smoothedScreenYaw = wrapDegrees(smoothedScreenYaw + wrapDegrees(rawHeadYaw - smoothedScreenYaw) * DAMPENING_COEFF)
         smoothedScreenPitch += (rawHeadPitch - smoothedScreenPitch) * DAMPENING_COEFF
     }
 

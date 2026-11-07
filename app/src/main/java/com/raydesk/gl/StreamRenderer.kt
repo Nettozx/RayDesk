@@ -863,9 +863,15 @@ class StreamRenderer(
     /**
      * Set the virtual screen scale for floating monitor mode.
      *
-     * @param scale Scale factor (0.5 to 3.0)
+     * @param scale Scale factor (0.5 to 5.0)
      */
     fun setVirtualScreenScale(scale: Float) {
+        // The saved zoom is applied before the GL surface exists; create the controller
+        // now (as setCurvedMonitorRadius does) instead of dropping the value.
+        if (virtualScreenController == null) {
+            virtualScreenController = VirtualScreenController()
+            virtualScreenController?.cursorTrackingEnabled = storedCursorTrackingEnabled
+        }
         virtualScreenController?.setScale(scale)
     }
 

@@ -1151,7 +1151,7 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
 
     @MainThread
     fun updateZoomLevel(level: Float) {
-        currentZoomLevel = level.coerceIn(0.5f, 3.0f)
+        currentZoomLevel = level.coerceIn(0.5f, 5.0f)
         updateZoomPercentDisplay()
         // Refresh options panel if in display category (zoom is now part of display)
         if (focusPanel == FocusPanel.OPTIONS &&
@@ -1254,7 +1254,7 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
             if (kotlin.math.abs(zoomEscapeMomentum) >= ZOOM_ESCAPE_THRESHOLD) {
                 // Escaped! Move just past the detent
                 val escapeDirection = if (zoomEscapeMomentum > 0) 1f else -1f
-                newZoomLevel = (nearestDetent + escapeDirection * (ZOOM_SNAP_THRESHOLD + 0.01f)).coerceIn(0.5f, 3.0f)
+                newZoomLevel = (nearestDetent + escapeDirection * (ZOOM_SNAP_THRESHOLD + 0.01f)).coerceIn(0.5f, 5.0f)
                 isZoomAtDetent = false
                 zoomEscapeMomentum = 0f
             } else {
@@ -1265,7 +1265,7 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
             // In capture zone - apply heavy damping
             val dampedDelta = delta * ZOOM_DAMPING_FACTOR
             val zoomChange = dampedDelta * ZOOM_SWIPE_SENSITIVITY
-            newZoomLevel = (currentZoomLevel + zoomChange).coerceIn(0.5f, 3.0f)
+            newZoomLevel = (currentZoomLevel + zoomChange).coerceIn(0.5f, 5.0f)
 
             // Check if we should snap to detent
             val newDistanceToDetent = kotlin.math.abs(newZoomLevel - nearestDetent)
@@ -1278,7 +1278,7 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
         } else {
             // Outside capture zone - normal movement
             val zoomChange = delta * ZOOM_SWIPE_SENSITIVITY
-            newZoomLevel = (currentZoomLevel + zoomChange).coerceIn(0.5f, 3.0f)
+            newZoomLevel = (currentZoomLevel + zoomChange).coerceIn(0.5f, 5.0f)
         }
 
         // Update if changed
@@ -1291,12 +1291,12 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
 
     /**
      * Find the nearest detent point for a given zoom level.
-     * Detents are at 0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00, 2.25, 2.50, 2.75, 3.00
+     * Detents are every 0.25 from 0.50 to 5.00
      */
     private fun findNearestDetent(zoomLevel: Float): Float {
         val adjusted = zoomLevel - 0.5f
         val intervals = kotlin.math.round(adjusted / ZOOM_DETENT_INTERVAL)
-        return (0.5f + intervals * ZOOM_DETENT_INTERVAL).coerceIn(0.5f, 3.0f)
+        return (0.5f + intervals * ZOOM_DETENT_INTERVAL).coerceIn(0.5f, 5.0f)
     }
 
     /**
@@ -1317,7 +1317,7 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
         // Move to next/previous detent
         val nearestDetent = findNearestDetent(currentZoomLevel)
         val newZoomLevel = if (direction > 0) {
-            (nearestDetent + ZOOM_DETENT_INTERVAL).coerceAtMost(3.0f)
+            (nearestDetent + ZOOM_DETENT_INTERVAL).coerceAtMost(5.0f)
         } else {
             (nearestDetent - ZOOM_DETENT_INTERVAL).coerceAtLeast(0.5f)
         }

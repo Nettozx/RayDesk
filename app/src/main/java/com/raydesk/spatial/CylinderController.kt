@@ -259,11 +259,11 @@ class CylinderController {
      */
     fun updateHeadPose(yaw: Float, pitch: Float, deltaTime: Float = 0.016f) {
         // Adjust for baseline
-        rawHeadYaw = yaw - baseYaw
+        rawHeadYaw = wrapDegrees(yaw - baseYaw)
         rawHeadPitch = pitch - basePitch
 
         // Stick-to-view for yaw
-        val yawDelta = rawHeadYaw - smoothedYaw
+        val yawDelta = wrapDegrees(rawHeadYaw - smoothedYaw)
         if (abs(yawDelta) > STICK_TO_VIEW_YAW_THRESHOLD) {
             val overshoot = yawDelta - STICK_TO_VIEW_YAW_THRESHOLD * sign(yawDelta)
             smoothedYaw += overshoot * DAMPENING_COEFF * 2f
@@ -277,7 +277,7 @@ class CylinderController {
         }
 
         // Micro-jitter dampening
-        smoothedYaw += (rawHeadYaw - smoothedYaw) * DAMPENING_COEFF
+        smoothedYaw = wrapDegrees(smoothedYaw + wrapDegrees(rawHeadYaw - smoothedYaw) * DAMPENING_COEFF)
         smoothedPitch += (rawHeadPitch - smoothedPitch) * DAMPENING_COEFF
 
         // Vertical follow (Gemini recommendation)

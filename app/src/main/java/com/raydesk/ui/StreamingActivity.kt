@@ -221,6 +221,7 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
     private var headTimestampNs = 0L
     private var needsRecenter = true  // Recenter on first sensor reading
     private var pitchZeroDegrees = Float.NaN  // Raw pitch at the first sensor reading
+    private var yawZeroDegrees = Float.NaN    // Raw heading at the first sensor reading
 
     // Debug/status
     private var showStatus = false
@@ -1622,11 +1623,11 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
     /**
      * Apply a specific zoom level to the current display mode.
      *
-     * @param level Zoom level (0.5 = 50%, 1.0 = 100%, 3.0 = 300%)
+     * @param level Zoom level (0.5 = 50%, 1.0 = 100%, 5.0 = 500%)
      */
     private fun applyZoomLevel(level: Float) {
         val renderer = streamRenderer ?: return
-        val clampedLevel = level.coerceIn(0.5f, 3.0f)
+        val clampedLevel = level.coerceIn(0.5f, 5.0f)
         when (renderer.displayMode) {
             DisplayMode.FLOATING_MONITOR -> {
                 renderer.setVirtualScreenScale(clampedLevel)
@@ -1638,6 +1639,7 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
                 renderer.setCurvedMonitorRadius(radius)
             }
             DisplayMode.KEYHOLE_PANNING -> {
+                // Keyhole bottoms out at its native-pixel view (300%)
                 val keyholeZoom = ((3.0f - clampedLevel) / 2.5f).coerceIn(0f, 1f)
                 keyholeViewport?.setZoomLevel(keyholeZoom)
             }
@@ -1764,7 +1766,11 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
                 1.0 - 2.0 * (qx * qx + qy * qy)
             )
 
-            val yawDegrees = Math.toDegrees(yawRadians).toFloat()
+            // Measured from the first reading too: the sensor's starting heading is arbitrary,
+            // and a raw heading near +/-180 jumps by 360 when you turn past it.
+            val rawYawDegrees = Math.toDegrees(yawRadians).toFloat()
+            if (yawZeroDegrees.isNaN()) yawZeroDegrees = rawYawDegrees
+            val yawDegrees = com.raydesk.spatial.wrapDegrees(rawYawDegrees - yawZeroDegrees)
             // Upright glasses read about +/-90 here; measure from the first reading so the
             // screen starts level (recentering zeroes it again later).
             val rawPitchDegrees = Math.toDegrees(pitchRadians).toFloat()

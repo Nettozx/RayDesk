@@ -106,7 +106,7 @@ data class StreamingSettings(
      * Create a copy with updated zoom level and save.
      */
     fun withZoomLevel(context: Context, level: Float): StreamingSettings {
-        return copy(zoomLevel = level.coerceIn(0.5f, 3.0f)).also { it.save(context) }
+        return copy(zoomLevel = level.coerceIn(0.5f, 5.0f)).also { it.save(context) }
     }
 
     /**
