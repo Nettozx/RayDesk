@@ -44,6 +44,12 @@ jobs:
             echo "keyAlias=$ALIAS"
             echo "keyPassword=$KEY_PASSWORD"
           } > keystore.properties
+          # Fail early, saying what's wrong, if the alias isn't in the keystore
+          if ! keytool -list -keystore "$RUNNER_TEMP/key.jks" -storepass "$KEY_STORE_PASSWORD" -alias "$ALIAS" > /dev/null 2>&1; then
+            echo "::error::The ALIAS secret (${#ALIAS} characters) isn't a key in the keystore. Keys in it:"
+            keytool -list -keystore "$RUNNER_TEMP/key.jks" -storepass "$KEY_STORE_PASSWORD" 2>&1               | grep -iE "PrivateKeyEntry|keystore type|contains" || true
+            exit 1
+          fi
           echo "variant=release" >> "$GITHUB_OUTPUT"
 
       - name: Build
