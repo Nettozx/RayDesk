@@ -970,23 +970,7 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
 
     private fun handleDisplayOptionSelection() {
         when (optionSelectedIndex) {
-            0 -> {
-                // Cycle display mode
-                val modes = DisplayModeOption.values()
-                val nextIndex = (modes.indexOf(currentDisplayMode) + 1) % modes.size
-                currentDisplayMode = modes[nextIndex]
-                onDisplayModeChanged?.invoke(currentDisplayMode)
-
-                // AUTO-SWITCH: Force Trackpad when leaving Keyhole mode
-                // Gesture mode doesn't work well with zoom-based display modes
-                if (currentDisplayMode != DisplayModeOption.KEYHOLE &&
-                    currentInputMode == InputModeOption.GESTURE) {
-                    currentInputMode = InputModeOption.TRACKPAD
-                    onInputModeChanged?.invoke(currentInputMode)
-                }
-
-                refreshOptionsPanel()
-            }
+            0 -> cycleDisplayMode()
             1 -> {
                 // Enter zoom adjustment mode
                 enterZoomAdjustmentMode()
@@ -1113,6 +1097,25 @@ class GameStyleMenuOverlay @JvmOverloads constructor(
     // ========================================================================
     // STATE UPDATES FROM EXTERNAL CHANGES
     // ========================================================================
+
+    /** Switches to the next display mode (menu option, or the glasses' top button). */
+    @MainThread
+    fun cycleDisplayMode() {
+        val modes = DisplayModeOption.values()
+        val nextIndex = (modes.indexOf(currentDisplayMode) + 1) % modes.size
+        currentDisplayMode = modes[nextIndex]
+        onDisplayModeChanged?.invoke(currentDisplayMode)
+
+        // AUTO-SWITCH: Force Trackpad when leaving Keyhole mode
+        // Gesture mode doesn't work well with zoom-based display modes
+        if (currentDisplayMode != DisplayModeOption.KEYHOLE &&
+            currentInputMode == InputModeOption.GESTURE) {
+            currentInputMode = InputModeOption.TRACKPAD
+            onInputModeChanged?.invoke(currentInputMode)
+        }
+
+        refreshOptionsPanel()
+    }
 
     @MainThread
     fun updateDisplayMode(mode: DisplayModeOption) {

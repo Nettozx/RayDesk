@@ -1,7 +1,9 @@
 package com.raydesk.ui
 
 import android.content.Context
+import android.content.BroadcastReceiver
 import android.content.Intent
+import android.content.IntentFilter
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -1975,8 +1977,28 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
         }
     }
 
+    /**
+     * The glasses' top button, sent by Glasses Tweaks' launcher hook when its switch is on
+     * (only the system uid can send it): tap = recenter (as a temple double-tap), long press =
+     * next display mode.
+     */
+    private val topButtonReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.getStringExtra("press")) {
+                "tap" -> handleTempleAction(TempleAction.DoubleClick())
+                "long" -> binding.gameMenuOverlay.cycleDisplayMode()
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
+
+        androidx.core.content.ContextCompat.registerReceiver(
+            this, topButtonReceiver, IntentFilter("com.rayneosettings.action.TOP_BUTTON"),
+            "android.permission.INJECT_EVENTS", null,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+        )
 
         // Register sensor listener
         gameRotationSensor?.let { sensor ->
@@ -1990,6 +2012,12 @@ class StreamingActivity : BaseEventActivity(), SensorEventListener, StreamResolu
 
     override fun onPause() {
         super.onPause()
+
+        try {
+            unregisterReceiver(topButtonReceiver)
+        } catch (e: IllegalArgumentException) {
+            // not registered
+        }
 
         // Unregister sensor listener
         sensorManager.unregisterListener(this)
